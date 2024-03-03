@@ -1,3 +1,4 @@
 demo/*.js
 demo/*.map
 *.zip
+node_modules/*

@@ -2,8 +2,10 @@
 import { babel } from '@rollup/plugin-babel';
 import eslint from '@rollup/plugin-eslint';
 import replace from '@rollup/plugin-replace';
-import { nodeResolve }  from '@rollup/plugin-node-resolve';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
+const Path = require('path');
+import json from '@rollup/plugin-json';
 
 const pkg = require('./package.json');
 
@@ -28,15 +30,30 @@ export default {
                 __VERSION__:pkg.version
             }
         }),
-        eslint(),
         nodeResolve({
             browser: true,
         }),
+        json(),
         commonjs(),
         babel({
             exclude: 'node_modules/**',
-            babelHelpers: 'bundled' 
-            
+            presets: [
+                [
+                    "@babel/preset-env",
+                    {
+                      "useBuiltIns":"usage",
+                      "corejs":3,
+                      "targets":{
+                        "browsers": [
+                            "ios >= 9",
+                            "chrome >= 65",
+                        ]
+                      }
+                    }
+                  
+                  ]
+                ]
+
         }),
         (process.env.NODE_ENV === 'production'),
     ],
