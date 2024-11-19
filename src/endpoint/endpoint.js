@@ -142,6 +142,13 @@ export default class RTCEndpoint extends Event
                 videoConstraints = new Base.VideoTrackConstraints(Base.VideoSourceInfo.CAMERA);
             if(this.options.audioEnable)
                 audioConstraints = new Base.AudioTrackConstraints(Base.AudioSourceInfo.MIC);
+
+            if(typeof videoConstraints == 'object' && this.options.videoId != ''){
+                videoConstraints.deviceId = this.options.videoId;
+            }
+            if(typeof audioConstraints == 'object' && this.options.audioId != ''){
+                audioConstraints.deviceId = this.options.audioId;
+            }
         }
         else
         {
@@ -159,20 +166,15 @@ export default class RTCEndpoint extends Event
                 {// error shared display media not only audio
                     debug.error(this.TAG,'error paramter');
                 }
+                if(typeof audioConstraints == 'object' && this.options.audioId != ''){
+                    audioConstraints.deviceId = this.options.audioId;
+                }
             }
             
         }
 
         if(this.options.resolution.w !=0 && this.options.resolution.h!=0 && typeof videoConstraints == 'object'){
             videoConstraints.resolution = new Base.Resolution(this.options.resolution.w ,this.options.resolution.h);
-        }
-
-        if(typeof videoConstraints == 'object' && this.options.videoId != ''){
-            videoConstraints.deviceId = this.options.videoId;
-        }
-
-        if(typeof audioConstraints == 'object' && this.options.audioId != ''){
-            audioConstraints.deviceId = this.options.audioId;
         }
 
         Base.MediaStreamFactory.createMediaStream(new Base.StreamConstraints(
