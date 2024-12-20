@@ -15,7 +15,7 @@ export default class RTCEndpoint extends Event
         this.TAG = '[RTCPusherPlayer]';
 
         let defaults = {
-            element: '',// html video element
+            element: null,// html video element
             debug: false,// if output debug log
             zlmsdpUrl:'',
             simulcast:false,
@@ -268,7 +268,7 @@ export default class RTCEndpoint extends Event
 
             }).catch(e=>{
                 this.dispatch(Events.CAPTURE_STREAM_FAILED);
-                //debug.error(this.TAG,e);
+                debug.error(this.TAG,e);
             });
         
         //const offerOptions = {};
@@ -303,14 +303,17 @@ export default class RTCEndpoint extends Event
             this.options.element.srcObject = event.streams[0];
             this._remoteStream = event.streams[0];
 
-            this.dispatch(Events.WEBRTC_ON_REMOTE_STREAMS,event);
+            this.dispatch(Events.WEBRTC_ON_REMOTE_STREAMS,this._remoteStream);
         }
         else
         {
             if(this.pc.getReceivers().length ==this._tracks.length){
                 debug.log(this.TAG,'play remote stream ');
                 this._remoteStream = new MediaStream(this._tracks);
-                this.options.element.srcObject = this._remoteStream;
+                if(this.options.element){
+                    this.options.element.srcObject = this._remoteStream;
+                }
+                this.dispatch(Events.WEBRTC_ON_REMOTE_STREAMS,this._remoteStream);
             }else{
                 debug.error(this.TAG,'wait stream track finish');
             }
