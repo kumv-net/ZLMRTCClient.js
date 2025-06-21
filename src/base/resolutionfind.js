@@ -75,6 +75,7 @@ export default function GetSupportCameraResolutions(){
 
             MediaFactory.MediaStreamFactory.createMediaStream(new MediaFactory.StreamConstraints(
                 false, videoConstraints)).then(stream => {
+                    stream.getVideoTracks().forEach(track => track.stop());
                     resolutions.push(quickScan[i]);
                     ok++;
                     if(ok+err == quickScan.length)
@@ -104,6 +105,7 @@ export function isSupportResolution(w,h)
 
         MediaFactory.MediaStreamFactory.createMediaStream(new MediaFactory.StreamConstraints(
             false, videoConstraints)).then(stream => {
+                    stream.getVideoTracks().forEach(track => track.stop());
                     resolve();
             }).catch(e => {
                 reject(e);

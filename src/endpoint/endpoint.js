@@ -5,6 +5,7 @@ import Event from '../ulity/event';
 import Events from '../base/event';
 import axios from 'axios';
 import * as Base from '../base/export';
+import { Promise } from 'es6-promise';
 import adapter from 'webrtc-adapter';
 
 export default class RTCEndpoint extends Event
@@ -16,7 +17,7 @@ export default class RTCEndpoint extends Event
         that.TAG = '[RTCPusherPlayer]';
 
         let defaults = {
-            element: '',// html video element
+            element: null,// html video element
             debug: false,// if output debug log
             zlmsdpUrl:'',
             simulcast:false,
@@ -26,6 +27,8 @@ export default class RTCEndpoint extends Event
             recvOnly:false,
             resolution:{w:0,h:0},
             usedatachannel:false,
+            videoId:'',
+            audioId:'',
         };
         
         that.options = Object.assign({}, defaults, options);
@@ -192,6 +195,13 @@ export default class RTCEndpoint extends Event
                 videoConstraints = new Base.VideoTrackConstraints(Base.VideoSourceInfo.CAMERA);
             if(that.options.audioEnable)
                 audioConstraints = new Base.AudioTrackConstraints(Base.AudioSourceInfo.MIC);
+
+            if(typeof videoConstraints == 'object' && this.options.videoId != ''){
+                videoConstraints.deviceId = this.options.videoId;
+            }
+            if(typeof audioConstraints == 'object' && this.options.audioId != ''){
+                audioConstraints.deviceId = this.options.audioId;
+            }
         }
         else
         {
@@ -208,6 +218,9 @@ export default class RTCEndpoint extends Event
                 else
                 {// error shared display media not only audio
                     debug.error(that.TAG,'error paramter');
+                }
+                if(typeof audioConstraints == 'object' && this.options.audioId != ''){
+                    audioConstraints.deviceId = this.options.audioId;
                 }
             }
             
@@ -318,7 +331,7 @@ export default class RTCEndpoint extends Event
 
             }).catch(e=>{
                 that.dispatch(Events.CAPTURE_STREAM_FAILED);
-                //debug.error(that.TAG,e);
+                //debug.error(this.TAG,e);
             });
         
         //const offerOptions = {};
@@ -360,14 +373,14 @@ export default class RTCEndpoint extends Event
             }
             this._remoteStream = event.streams[0];
 
-            this.dispatch(Events.WEBRTC_ON_REMOTE_STREAMS,event);
+            this.dispatch(Events.WEBRTC_ON_REMOTE_STREAMS,this._remoteStream);
         }
         else
         {
             if(this.pc.getReceivers().length ==this._tracks.length){
                 debug.log(this.TAG,'play remote stream ');
                 this._remoteStream = new MediaStream(this._tracks);
-                if("srcObject" in this.options.element){
+                if(this.options.element && "srcObject" in this.options.element){
                     // reset srcObject to work around minor bugs in Chrome and Edge.
                     //this.options.element.srcObject = null;
                     this.options.element.srcObject = this._remoteStream;
@@ -375,6 +388,7 @@ export default class RTCEndpoint extends Event
                     const mediaSource =  this._remoteStream instanceof MediaSource ? this._remoteStream : new MediaSource(this._remoteStream);
                     this.options.element.src = window.URL.createObjectURL(mediaSource);
                 }
+                this.dispatch(Events.WEBRTC_ON_REMOTE_STREAMS,this._remoteStream);
             }else{
                 debug.error(this.TAG,'wait stream track finish');
             }
@@ -412,6 +426,52 @@ export default class RTCEndpoint extends Event
             debug.error(this.TAG,'data channel is null');
         }
     }
+
+    switchVideo(useCamera,deviceId){
+        let videoConstraints = false;
+        if(useCamera){
+            videoConstraints = new Base.VideoTrackConstraints(Base.VideoSourceInfo.CAMERA);
+            videoConstraints.deviceId = deviceId;
+        }else{
+            videoConstraints = new Base.VideoTrackConstraints(Base.VideoSourceInfo.SCREENCAST);
+        }
+
+        return Base.MediaStreamFactory.createMediaStream(new Base.StreamConstraints(
+            false, videoConstraints)).then(stream=>{
+               const videosender =  this.pc.getSenders().find(e => e.track.kind === 'video');
+               if(videosender != null && stream.getVideoTracks().length>0){
+                    this._localStream.removeTrack(videosender.track);
+                    this._localStream.addTrack(stream.getVideoTracks()[0]);
+                    // stream change 
+                    this.dispatch(Events.WEBRTC_ON_LOCAL_STREAM,this._localStream);
+                    return videosender.replaceTrack(stream.getVideoTracks()[0]);
+               }
+               return Promise.reject('video not exist or deviceid not vaild');
+            });
+    }
+
+    switcAudio(useMic,deviceId){
+        let audioConstraints = false;
+        if(useMic){
+            audioConstraints = new Base.AudioTrackConstraints(Base.AudioSourceInfo.MIC);
+            audioConstraints.deviceId = deviceId;
+        }else{
+            audioConstraints = new Base.AudioTrackConstraints(Base.AudioSourceInfo.SCREENCAST);
+        }
+        return Base.MediaStreamFactory.createMediaStream(new Base.StreamConstraints(
+            audioConstraints, false)).then(stream=>{
+               const audiosender =  this.pc.getSenders().find(e => e.track.kind === 'audio');
+               if(audiosender != null && stream.getAudioTracks().length>0){
+                    this._localStream.removeTrack(audiosender.track);
+                    this._localStream.addTrack(stream.getAudioTracks()[0]);
+                    // stream change 
+                    this.dispatch(Events.WEBRTC_ON_LOCAL_STREAM,this._localStream);
+                    return audiosender.replaceTrack(stream.getAudioTracks()[0]);
+               }
+               return Promise.reject('audio not exist or deviceid not vaild');
+            });
+    }
+
     closeDataChannel(){
         if(this.datachannel){
             this.datachannel.close();
