@@ -4,10 +4,8 @@ import eslint from '@rollup/plugin-eslint';
 import replace from '@rollup/plugin-replace';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
-const Path = require('path');
 import json from '@rollup/plugin-json';
-
-const pkg = require('./package.json');
+import pkg from './package.json' assert { type: "json" };
 
 export default {
     input: 'src/export-zlm.js',

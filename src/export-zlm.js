@@ -1,2 +1,2 @@
-import * as ZLMRTCClient from './export-zlm';
+import * as ZLMRTCClient from './export';
 window.ZLMRTCClient = ZLMRTCClient;
