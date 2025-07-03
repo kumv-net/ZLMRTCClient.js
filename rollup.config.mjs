@@ -6,7 +6,9 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import pkg from './package.json' assert { type: "json" };
+import terser from '@rollup/plugin-terser';
 
+const isProd = true;
 export default {
     input: 'src/export-zlm.js',
     output: [
@@ -14,18 +16,37 @@ export default {
             file: 'demo/ZLMRTCClient.js',
             format: 'iife',
             name: 'ZLMRTCClient',
-            sourcemap: true // 'inline'
+            sourcemap: true, // 'inline'
+            plugins: [
+                // 输出阶段专属插件
+                isProd && terser({
+                    compress: {
+                        // 删除 console / debugger
+                        drop_console: true,
+                        drop_debugger: true,
+                    },
+                    format: {
+                        // 移除所有注释
+                        comments: false,
+                    },
+                    mangle: {
+                        // 可按需保留类名 / 函数名
+                        // keep_classnames: true,
+                        // keep_fnames: true,
+                    },
+                }),
+            ].filter(Boolean),
         }
     ],
     plugins: [
         replace({
             exclude: 'node_modules/**',
-            include:['src/ulity/version.js'],
-            preventAssignment:true,
+            include: ['src/ulity/version.js'],
+            preventAssignment: true,
             ENV: JSON.stringify(process.env.NODE_ENV || 'development'),
-            values:{
+            values: {
                 __BUILD_DATE__: () => (new Date()).toString(),
-                __VERSION__:pkg.version
+                __VERSION__: pkg.version
             }
         }),
         nodeResolve({
@@ -39,18 +60,18 @@ export default {
                 [
                     "@babel/preset-env",
                     {
-                      "useBuiltIns":"usage",
-                      "corejs":3,
-                      "targets":{
-                        "browsers": [
-                            "ios >= 9",
-                            "chrome >= 65",
-                        ]
-                      }
+                        "useBuiltIns": "usage",
+                        "corejs": 3,
+                        "targets": {
+                            "browsers": [
+                                "ios >= 9",
+                                "chrome >= 65",
+                            ]
+                        }
                     }
-                  
-                  ]
+
                 ]
+            ]
 
         }),
         (process.env.NODE_ENV === 'production'),
